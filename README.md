@@ -4,7 +4,7 @@
 
 The Pingdom Uptime Calculator is a Rust-based command-line tool designed to calculate and report uptime statistics for Pingdom checks over a specified date range. This tool leverages asynchronous programming to efficiently process multiple checks concurrently, providing fast and accurate uptime calculations.
 
-Created by Ron McCorkle
+Created by Ron McCorkle (mack42 on GitHub)
 
 ## Features
 
@@ -140,6 +140,6 @@ SOFTWARE.
 
 ## Credits
 
-Created by Ron McCorkle
+Created by Ron McCorkle (mack42 on GitHub)
 
 For any questions or support, please contact [provide contact information if appropriate].
