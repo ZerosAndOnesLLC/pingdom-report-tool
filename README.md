@@ -54,17 +54,17 @@ After compiling, you can run the tool directly without using `cargo run`. The co
 
 1. If you're in the project root, you can run:
    ```sh
-   ./target/release/pingdom-uptime-calculator --start-date MM/DD/YYYY --end-date MM/DD/YYYY
+   ./target/release/prt --start-date MM/DD/YYYY --end-date MM/DD/YYYY
    ```
 
 2. Alternatively, you can move the binary to a directory in your PATH and run it from anywhere:
    ```sh
-   pingdom-uptime-calculator --start-date MM/DD/YYYY --end-date MM/DD/YYYY
+   prt --start-date MM/DD/YYYY --end-date MM/DD/YYYY
    ```
 
 Example:
 ```sh
-pingdom-uptime-calculator --start-date 01/01/2024 --end-date 12/31/2024
+prt --start-date 01/01/2024 --end-date 12/31/2024
 ```
 
 This will calculate the uptime for all your Pingdom checks from January 1, 2024, to December 31, 2024.
