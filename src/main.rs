@@ -1,6 +1,6 @@
 use reqwest::{Client, header};
 use serde_json::Value;
-use chrono::{NaiveDate, DateTime, Utc};
+use chrono::{NaiveDate, DateTime, Utc, TimeZone};
 use std::collections::HashMap;
 use std::error::Error;
 use clap::Parser;
@@ -24,7 +24,6 @@ struct Args {
 #[derive(Clone)]
 struct PingdomApi {
     pingdom_uri: String,
-    api_key: String,
     client: Client,
 }
 
@@ -43,7 +42,6 @@ impl PingdomApi {
 
         PingdomApi {
             pingdom_uri: pingdom_uri.to_string(),
-            api_key: api_key.to_string(),
             client,
         }
     }
@@ -118,7 +116,7 @@ impl PingdomApi {
 
 fn parse_date(date_str: &str) -> Result<DateTime<Utc>, Box<dyn Error>> {
     let naive_date = NaiveDate::parse_from_str(date_str, "%m/%d/%Y")?;
-    Ok(DateTime::<Utc>::from_utc(naive_date.and_hms(0, 0, 0), Utc))
+    Ok(Utc.from_utc_datetime(&naive_date.and_hms_opt(0, 0, 0).unwrap()))
 }
 
 fn print_usage() {
