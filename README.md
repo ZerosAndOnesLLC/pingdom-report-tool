@@ -42,6 +42,7 @@ Created by Ron McCorkle (mack42 on GitHub)
       export PINGDOM_API_KEY=your_api_key_here
       export PINGDOM_API_URL=https://api.pingdom.com/api/3.1
       ```
+      NOTE: When you create an API key on Pingdom's website, select READ-ONLY.
 
 3. Build the project:
    ```sh
@@ -79,13 +80,6 @@ cargo run -- --start-date MM/DD/YYYY --end-date MM/DD/YYYY
 The tool will display the uptime statistics for each check in the following format:
 ```
 Check Name, Uptime Percentage%, Downtime Minutes
-```
-
-Example output:
-```
-My Website, 99.9%, 525 mins
-API Server, 99.95%, 262 mins
-Database Cluster, 99.99%, 52 mins
 ```
 
 ## Notes
