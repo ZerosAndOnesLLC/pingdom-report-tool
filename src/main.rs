@@ -92,30 +92,47 @@ impl PingdomApi {
 
         let check_uptime: Value = serde_json::from_str(&self.get_perf_summary(check_id, from, to, "true", "week").await?)?;
 
-        for u in check_uptime["summary"]["weeks"].as_array().unwrap() {
-            let uptime = uptime_calc["uptime"].as_u64().unwrap() + u["uptime"].as_u64().unwrap();
-            let downtime = uptime_calc["downtime"].as_u64().unwrap() + u["downtime"].as_u64().unwrap();
-            let downtime_mins = uptime_calc["downtime_mins"].as_u64().unwrap() + u["downtime"].as_u64().unwrap() / 60;
-            let unmonitored = uptime_calc["unmonitored"].as_u64().unwrap() + u["unmonitored"].as_u64().unwrap();
+        // Check if we have valid data in the response
+        if let Some(weeks) = check_uptime["summary"]["weeks"].as_array() {
+            for u in weeks {
+                let uptime = uptime_calc["uptime"].as_u64().unwrap_or(0) + u["uptime"].as_u64().unwrap_or(0);
+                let downtime = uptime_calc["downtime"].as_u64().unwrap_or(0) + u["downtime"].as_u64().unwrap_or(0);
+                let downtime_mins = uptime_calc["downtime_mins"].as_u64().unwrap_or(0) + u["downtime"].as_u64().unwrap_or(0) / 60;
+                let unmonitored = uptime_calc["unmonitored"].as_u64().unwrap_or(0) + u["unmonitored"].as_u64().unwrap_or(0);
 
-            uptime_calc.insert("uptime".to_string(), Value::Number(uptime.into()));
-            uptime_calc.insert("downtime".to_string(), Value::Number(downtime.into()));
-            uptime_calc.insert("downtime_mins".to_string(), Value::Number(downtime_mins.into()));
-            uptime_calc.insert("unmonitored".to_string(), Value::Number(unmonitored.into()));
+                uptime_calc.insert("uptime".to_string(), Value::Number(uptime.into()));
+                uptime_calc.insert("downtime".to_string(), Value::Number(downtime.into()));
+                uptime_calc.insert("downtime_mins".to_string(), Value::Number(downtime_mins.into()));
+                uptime_calc.insert("unmonitored".to_string(), Value::Number(unmonitored.into()));
+            }
+
+            let max_uptime = uptime_calc["uptime"].as_u64().unwrap_or(0) + 
+                           uptime_calc["downtime"].as_u64().unwrap_or(0) + 
+                           uptime_calc["unmonitored"].as_u64().unwrap_or(0);
+            uptime_calc.insert("max_uptime".to_string(), Value::Number(max_uptime.into()));
+
+            let percentage = if max_uptime > 0 {
+                ((uptime_calc["uptime"].as_u64().unwrap_or(0) as f64 + 
+                  uptime_calc["unmonitored"].as_u64().unwrap_or(0) as f64) / 
+                 max_uptime as f64 * 100.0 * 10000.0).round() / 10000.0
+            } else {
+                0.0
+            };
+            uptime_calc.insert("percentage".to_string(), Value::Number(serde_json::Number::from_f64(percentage).unwrap()));
         }
-
-        let max_uptime = uptime_calc["uptime"].as_u64().unwrap() + uptime_calc["downtime"].as_u64().unwrap() + uptime_calc["unmonitored"].as_u64().unwrap();
-        uptime_calc.insert("max_uptime".to_string(), Value::Number(max_uptime.into()));
-
-        let percentage = ((uptime_calc["uptime"].as_u64().unwrap() as f64 + uptime_calc["unmonitored"].as_u64().unwrap() as f64) / max_uptime as f64 * 100.0 * 10000.0).round() / 10000.0;
-        uptime_calc.insert("percentage".to_string(), Value::Number(serde_json::Number::from_f64(percentage).unwrap()));
 
         Ok(uptime_calc)
     }
 }
 
 fn parse_date(date_str: &str) -> Result<DateTime<Utc>, Box<dyn Error>> {
-    let naive_date = NaiveDate::parse_from_str(date_str, "%m/%d/%Y")?;
+    // Try parsing with MM/DD/YYYY format first
+    if let Ok(naive_date) = NaiveDate::parse_from_str(date_str, "%m/%d/%Y") {
+        return Ok(Utc.from_utc_datetime(&naive_date.and_hms_opt(0, 0, 0).unwrap()));
+    }
+    
+    // If that fails, try MM-DD-YYYY format
+    let naive_date = NaiveDate::parse_from_str(date_str, "%m-%d-%Y")?;
     Ok(Utc.from_utc_datetime(&naive_date.and_hms_opt(0, 0, 0).unwrap()))
 }
 
@@ -135,13 +152,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let args = Args::parse();
 
-    if args.start_date.is_none() || args.end_date.is_none() {
-        print_usage();
-        return Ok(());
-    }
-
-    let start_date = parse_date(&args.start_date.unwrap())?;
-    let end_date = parse_date(&args.end_date.unwrap())?;
+    let (start_date, end_date) = if args.start_date.is_none() || args.end_date.is_none() {
+        // Default to last year from today
+        let end_date = Utc::now();
+        let start_date = end_date - chrono::Duration::days(365);
+        (start_date, end_date)
+    } else {
+        let start = parse_date(&args.start_date.unwrap())?;
+        let end = parse_date(&args.end_date.unwrap())?;
+        (start, end)
+    };
 
     let uptime_from = start_date.timestamp();
     let uptime_to = end_date.timestamp();
